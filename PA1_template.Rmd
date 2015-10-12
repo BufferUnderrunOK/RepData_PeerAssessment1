@@ -118,12 +118,15 @@ Massaging the data dramatically skews the mean number of steps, and slightly ske
 > indicating whether a given date is a weekday or weekend day.
 
 ```{r}
-imputedData %>% mutate(wday = as.POSIXlt(date)$wday) %>% mutate(weekday = factor(ifelse(wday == 0 | wday == 6,"weekend", "weekday")))
+weekdayImputed <- imputedData %>% mutate(wday = as.POSIXlt(date)$wday) %>% mutate(weekday = factor(ifelse(wday == 0 | wday == 6,"weekend", "weekday")))
 ```
 
 > Make a panel plot containing a time series plot (i.e. type = "l")
 > of the 5-minute interval (x-axis) and the average number of steps
 > taken, averaged across all weekday days or weekend days (y-axis). 
 
-```{r}
+```{r timeSeriesPlot2}
+df5 <- weekdayImputed %>% group_by(interval,weekday) %>% summarize(avgSteps = mean(steps,na.rm=TRUE)) 
+z <- ggplot(df5, aes(group=weekday, x=interval, y=avgSteps))
+z + geom_line() + labs(x = "Time Interval", y="Average Number of Steps") + facet_wrap(~weekday, ncol=1) 
 ```
