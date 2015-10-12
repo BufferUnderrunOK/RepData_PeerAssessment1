@@ -11,6 +11,7 @@ This analysis uses some popular R libraries to ease processing.
 ```{r message=FALSE,warning=FALSE}
 library(plyr)
 library(dplyr)
+library(ggplot2)
 ```
 
 ## Loading and preprocessing the data
@@ -20,22 +21,95 @@ You must first unzip the activity.zip file.
 ```{r loadData}
 wp <- file("activity/activity.csv") 
 theData <- read.csv(wp)
-head(theData)
 ```
 
-## What is mean total number of steps taken per day?
+## What is mean total number of steps taken per day?    
 
 ```{r calcMean}
 df2 <- theData %>% group_by(date) %>% summarize(totalSteps = sum(steps,na.rm=TRUE)) 
-df2 %>% summarize(mean(totalSteps))
+m <- ggplot(df2, aes(x=totalSteps))
+m + geom_histogram(binwidth=1000, aes(fill=..count..)) + labs(x = "Total Steps", y="Count")
+originalMean <- df2 %>% summarize(mean(totalSteps), median(totalSteps)) %>% mutate(dataType = "original")
+originalMean
 ```
 
 ## What is the average daily activity pattern?
 
+> Make a time series plot (i.e. type = "l") of the 
+> 5-minute interval (x-axis) and the average number
+> of steps taken, averaged across all days (y-axis)
 
+```{r timeSeriesPlot}
+df3 <- theData %>% group_by(interval) %>% summarize(avgSteps = mean(steps,na.rm=TRUE)) 
+z <- ggplot(df3, aes(x=interval, y=avgSteps))
+z + geom_line() + labs(x = "Time Interval", y="Average Number of Steps")
+```
+
+> Which 5-minute interval, on average across all the 
+> days in the dataset, contains the maximum number of steps?
+
+```{r maxInterval}
+df3 %>% slice(which.max(avgSteps))
+```
 
 ## Imputing missing values
 
+> Note that there are a number of days/intervals where there 
+> are missing values (coded as NA). The presence of missing
+> days may introduce bias into some calculations or summaries of the data.
 
+> Calculate and report the total number of missing values 
+> in the dataset (i.e. the total number of rows with NAs)
+
+```{r numberOfMissingRows}
+theData %>% filter(is.na(steps)) %>% nrow()
+```
+
+> Devise a strategy for filling in all of the missing values
+> in the dataset. The strategy does not need to be sophisticated.
+
+We will calculate the mean steps for each 5 minute interval, removing na values.
+
+```{r}
+intervalAverages <- theData %>% group_by(interval) %>% summarize(avgSteps = mean(steps,na.rm=TRUE)) 
+```
+
+> Create a new dataset that is equal to the original dataset
+> but with the missing data filled in.
+
+```{r createImputedData}
+naRows <- theData %>% filter(is.na(steps))
+okRows <- theData %>% filter(!is.na(steps))
+
+naRows2 <- merge(naRows, intervalAverages, by="interval")
+naRows3 <- transform(naRows2, steps = avgSteps) %>% select(steps, date, interval)
+
+imputedData <- merge(naRows3, okRows, all=TRUE)
+```
+
+> Make a histogram of the total number of steps taken each day
+
+```{r imputedHistogram}
+df4 <- imputedData %>% group_by(date) %>% summarize(totalSteps = sum(steps,na.rm=TRUE)) 
+m <- ggplot(df4, aes(x=totalSteps))
+m + geom_histogram(binwidth=1000, aes(fill=..count..)) + labs(x = "Total Steps", y="Count")
+```
+
+> Calculate and report the mean and median total number of steps taken per day.
+
+```{r calculateimputedMean}
+imputedMean <- df4 %>% summarize(mean(totalSteps), median(totalSteps)) %>% mutate(dataType = "imputed")
+imputedMean
+```
+
+> Do these values differ from the estimates from the first part of the assignment? 
+> What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r}
+merge(originalMean, imputedMean, all=TRUE)
+```
+
+Massaging the data dramatically skews the mean number of steps, and slightly skews the median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
