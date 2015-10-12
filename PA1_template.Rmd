@@ -5,14 +5,30 @@ output:
     keep_md: true
 ---
 
+Barrett W. Nuzum
+
+This analysis uses some popular R libraries to ease processing.
+```{r message=FALSE,warning=FALSE}
+library(plyr)
+library(dplyr)
+```
 
 ## Loading and preprocessing the data
 
+You must first unzip the activity.zip file.
 
+```{r loadData}
+wp <- file("activity/activity.csv") 
+theData <- read.csv(wp)
+head(theData)
+```
 
 ## What is mean total number of steps taken per day?
 
-
+```{r calcMean}
+df2 <- theData %>% group_by(date) %>% summarize(totalSteps = sum(steps,na.rm=TRUE)) 
+df2 %>% summarize(mean(totalSteps))
+```
 
 ## What is the average daily activity pattern?
 
